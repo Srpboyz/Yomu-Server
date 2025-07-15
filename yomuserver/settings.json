@@ -1,0 +1,5 @@
+{
+    "http_port": 6969,
+    "ws_port": 42069,
+    "autoconnect": false
+}
