@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "yomu-server"
-version = "1.0.0"
+version = "1.0.1"
 description = "An server extension for the Yomu manga reader"
 authors = ["Srpboyz <srpboyz69@gmail.com>"]
 readme = "README.md"

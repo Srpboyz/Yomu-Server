@@ -27,6 +27,7 @@ class HttpServer(QObject):
 
         app = ext.app
         self._server.add_route_handler(LibraryHandler(app.sql))
+        self._server.add_route_handler(CategoryHandler(app.sql))
         self._server.add_route_handler(
             SourceHandler(app.network, app.source_manager, app.sql)
         )
