@@ -68,7 +68,7 @@ class CategoryHandler(RouteHandler):
             status=StatusCode.SUCCESS, json=list(map(convert_manga_to_json, mangas))
         )
 
-    @post("/<category_id:int>/<manga_id:int>/")
+    @post("/<category_id:int>/manga/<manga_id:int>/")
     def add_manga_to_category(self, request: HttpRequest):
         params = request.path_params
 
@@ -89,7 +89,7 @@ class CategoryHandler(RouteHandler):
             return HttpResponse(status=StatusCode.SUCCESS)
         return HttpResponse(status=StatusCode.INTERNAL_SERVER_ERROR)
 
-    @delete("/<category_id:int>/<manga_id:int>/")
+    @delete("/<category_id:int>/manga/<manga_id:int>/")
     def remove_manga_from_category(self, request: HttpRequest):
         params = request.path_params
 

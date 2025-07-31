@@ -98,7 +98,7 @@ class MessageHandler(QObject):
     def handle_category_manga_added(self, category: Category, manga: Manga) -> None:
         self.server.send_message(
             MessageType.CATEGORY_MANGA_ADDED,
-            {"category_id": category.id, "manga_id": manga.id},
+            {"category_id": category.id, "manga": utils.convert_manga_to_json(manga)},
         )
 
     def handle_category_manga_removed(self, category: Category, manga: Manga) -> None:
