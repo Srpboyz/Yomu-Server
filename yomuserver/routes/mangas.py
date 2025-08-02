@@ -113,13 +113,12 @@ class MangaHandler(RouteHandler):
             return HttpResponse(StatusCode.INTERNAL_SERVER_ERROR)
         image = image.scaledToWidth(720, Qt.TransformationMode.SmoothTransformation)
 
-        buffer = QBuffer()
+        buffer = QBuffer(reply)
         buffer.open(QBuffer.OpenModeFlag.WriteOnly)
         if not image.save(buffer, "JPG"):
             return HttpResponse(StatusCode.INTERNAL_SERVER_ERROR)
 
         data = buffer.data()
-        buffer.deleteLater()
 
         headers = {
             header.data().decode(): value.data().decode()
