@@ -43,6 +43,7 @@ class SettingsDialog(QDialog):
         self.settings = settings
         self.init_ui()
 
+        self.setStyleSheet("SettingsDialog QCheckBox { margin: 0 0 0 9px; }")
         self.setContentsMargins(*[10 for _ in range(4)])
         self.resize(400, 200)
 
