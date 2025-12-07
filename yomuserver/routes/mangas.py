@@ -20,11 +20,11 @@ from qhttpserver import (
 from .utils import convert_manga_to_json, convert_chapter_to_json
 
 if TYPE_CHECKING:
+    from yomu.core.models import Manga
     from yomu.core.network import Network
     from yomu.core.downloader import Downloader
     from yomu.core.sql import Sql
     from yomu.core.updater import Updater
-    from yomu.source import Source
 
 
 class MangaHandler(RouteHandler):
@@ -84,7 +84,6 @@ class MangaHandler(RouteHandler):
         manga = self.sql.get_manga_by_id(request.path_params["id"])
         if manga is None:
             return HttpResponse(status=StatusCode.NOT_FOUND)
-        source = manga.source
 
         path = self.downloader.resolve_path(manga)
         r: Request = (
@@ -95,18 +94,18 @@ class MangaHandler(RouteHandler):
         r.setPriority(Request.Priority.LowPriority)
         response = self.network.handle_request(r)
 
-        server_response = AsyncHttpResponse(request, self._thumbnail_received, source)
+        server_response = AsyncHttpResponse(request, self._thumbnail_received, manga)
         response.finished.connect(server_response.wait_for_signal)
         return server_response
 
-    def _thumbnail_received(self, _, reply: Response, source: Source):
+    def _thumbnail_received(self, _, reply: Response, manga: Manga):
         error = reply.error()
         if error != Response.Error.NoError:
             if error != Response.Error.OperationCanceledError:
-                source.thumbnail_request_error(reply)
+                manga.source.thumbnail_request_error(reply)
             return HttpResponse(StatusCode.INTERNAL_SERVER_ERROR)
 
-        data = source.parse_thumbnail(reply)
+        data = manga.source.parse_thumbnail(reply, manga)
 
         image = QImage()
         if not image.loadFromData(data):

@@ -69,19 +69,19 @@ class SourceHandler(RouteHandler):
         response = self.network.handle_request(r)
 
         server_response = AsyncHttpResponse(
-            request, self._latest_mangas_received, source
+            request, self._latest_mangas_received, source, page
         )
         response.finished.connect(server_response.wait_for_signal)
         return server_response
 
-    def _latest_mangas_received(self, _, reply: Response, source: Source):
+    def _latest_mangas_received(self, _, reply: Response, source: Source, page: int):
         error = reply.error()
         if error != Response.Error.NoError:
             if error != Response.Error.OperationCanceledError:
                 source.latest_request_error(reply)
             return HttpResponse(StatusCode.INTERNAL_SERVER_ERROR)
 
-        manga_list = source.parse_latest(reply)
+        manga_list = source.parse_latest(reply, page)
         mangas = self.sql.add_and_get_mangas(source, manga_list.mangas)
 
         body = {
@@ -102,18 +102,20 @@ class SourceHandler(RouteHandler):
         r.setPriority(Request.Priority.HighPriority)
         reply = self.network.handle_request(r)
 
-        response = AsyncHttpResponse(request, self._search_mangas_received, source)
+        response = AsyncHttpResponse(
+            request, self._search_mangas_received, source, name
+        )
         reply.finished.connect(response.wait_for_signal)
         return response
 
-    def _search_mangas_received(self, _, reply: Response, source: Source):
+    def _search_mangas_received(self, _, reply: Response, source: Source, name: str):
         error = reply.error()
         if error != Response.Error.NoError:
             if error != Response.Error.OperationCanceledError:
                 source.search_request_error(reply)
             return HttpResponse(StatusCode.INTERNAL_SERVER_ERROR)
 
-        manga_list = source.parse_search_results(reply)
+        manga_list = source.parse_search_results(reply, name)
         mangas = self.sql.add_and_get_mangas(source, manga_list.mangas)
 
         body = {

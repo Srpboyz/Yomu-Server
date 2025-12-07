@@ -23,6 +23,7 @@ from qhttpserver import (
 from .utils import convert_chapter_to_json
 
 if TYPE_CHECKING:
+    from yomu.core.models import Chapter
     from yomu.core.network import Network
     from yomu.core.sql import Sql
     from yomu.source import Source
@@ -74,19 +75,18 @@ class ChapterHandler(RouteHandler):
         if chapter.downloaded:
             return HttpResponse(json=os.listdir(Downloader.resolve_path(chapter)))
 
-        source = chapter.source
-        r = source.get_chapter_pages(chapter)
+        r = chapter.source.get_chapter_pages(chapter)
         r.setPriority(Request.Priority.HighPriority)
         response = self.network.handle_request(r)
 
         server_response = AsyncHttpResponse(
-            request, self._chapter_pages_received, source
+            request, self._chapter_pages_received, chapter
         )
         response.finished.connect(server_response.wait_for_signal)
         return server_response
 
-    def _chapter_pages_received(self, _, reply: Response, source: Source):
-        pages = source.parse_chapter_pages(reply)
+    def _chapter_pages_received(self, _, response: Response, chapter: Chapter):
+        pages = chapter.source.parse_chapter_pages(response, chapter)
         return HttpResponse(json=[page.url for page in pages])
 
     @get("/<id:int>/page")
@@ -99,29 +99,35 @@ class ChapterHandler(RouteHandler):
         url = request.query_params["url"][0]
 
         if chapter.downloaded:
+            page = None
             r = Request(
                 QUrl.fromLocalFile(os.path.join(Downloader.resolve_path(chapter), url))
             )
         else:
-            r = source.get_page(SourcePage(number=0, url=url))
+            page = SourcePage(number=0, url=url)
+            r = source.get_page(page)
             r.setPriority(Request.Priority.HighPriority)
 
         response = self.network.handle_request(r)
-        server_response = AsyncHttpResponse(request, self._page_image_received, source)
+        server_response = AsyncHttpResponse(
+            request, self._page_image_received, source, page
+        )
         response.finished.connect(server_response.wait_for_signal)
         return server_response
 
-    def _page_image_received(self, _, reply: Response, source: Source):
-        error = reply.error()
+    def _page_image_received(
+        self, _, response: Response, source: Source, page: SourcePage | None
+    ):
+        error = response.error()
         if error != Response.Error.NoError:
             if error != Response.Error.OperationCanceledError:
-                source.page_request_error(reply)
+                source.page_request_error(response, page)
             return HttpResponse(StatusCode.INTERNAL_SERVER_ERROR)
 
         data = (
-            source.parse_page(reply)
-            if not reply.url().isLocalFile()
-            else reply.read_all()
+            source.parse_page(response, page)
+            if not response.url().isLocalFile()
+            else response.read_all()
         )
 
         image = QImage()
@@ -129,7 +135,7 @@ class ChapterHandler(RouteHandler):
             return HttpResponse(StatusCode.INTERNAL_SERVER_ERROR)
         image = image.scaledToWidth(720, Qt.TransformationMode.SmoothTransformation)
 
-        buffer = QBuffer(reply)
+        buffer = QBuffer(response)
         buffer.open(QBuffer.OpenModeFlag.ReadWrite)
         if not image.save(buffer, "JPG"):
             return HttpResponse(StatusCode.INTERNAL_SERVER_ERROR)
@@ -138,7 +144,7 @@ class ChapterHandler(RouteHandler):
 
         headers = {
             header.data().decode(): value.data().decode()
-            for (header, value) in reply.headers.toListOfPairs()
+            for (header, value) in response.headers.toListOfPairs()
         }
         headers["content-type"] = "image/jpeg"
         headers["content-length"] = len(data)
