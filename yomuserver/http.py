@@ -17,13 +17,11 @@ class HttpServer(QObject):
     started = pyqtSignal()
     closed = pyqtSignal()
 
-    def __init__(
-        self, ext: YomuServerExtension, port: int, logger: Logger | None = None
-    ) -> None:
+    def __init__(self, ext: YomuServerExtension, port: int) -> None:
         super().__init__(ext)
-        self._server = QHttpServer(
-            ext, QHostAddress(QHostAddress.SpecialAddress.AnyIPv4), port, logger=logger
-        )
+
+        address = QHostAddress(QHostAddress.SpecialAddress.AnyIPv4)
+        self._server = QHttpServer(ext, address, port)
 
         app = ext.app
         self._server.add_route_handler(LibraryHandler(app.sql))

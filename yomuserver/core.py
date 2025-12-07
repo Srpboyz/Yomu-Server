@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 from copy import deepcopy
 from typing import TYPE_CHECKING
 
@@ -42,7 +41,7 @@ class YomuServerExtension(YomuExtension):
         http_port = self.settings.get("http_port", 6969)
         ws_port = self.settings.get("ws_port", 42069)
 
-        self.http_server = HttpServer(self, http_port, app.logger)
+        self.http_server = HttpServer(self, http_port)
         self.websocket_server = WebsocketServer(self, app, ws_port)
         self.websocket_server.started.connect(self.http_server.run)
         self.websocket_server.closed.connect(self.http_server.close)

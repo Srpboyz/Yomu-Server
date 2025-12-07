@@ -1,3 +1,6 @@
+from logging import Logger
+from functools import wraps
+from typing import Callable
 import re
 
 MATCH = re.compile(r"<([a-zA-Z_]+):?([a-zA-Z]+)?>")
@@ -23,3 +26,21 @@ def check_regex(path: str) -> tuple[bool, str, dict]:
     new_path = f"^{new_path}$"
 
     return bool(params), new_path, params
+
+
+def pyqtSlot(logger: Logger | None = None):
+    def decorator(func: Callable):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                func(*args, **kwargs)
+            except Exception as e:
+                if logger is not None:
+                    logger.exception(
+                        f"An exception occured while running {func.__name__}",
+                        exc_info=e,
+                    )
+
+        return wrapper
+
+    return decorator
