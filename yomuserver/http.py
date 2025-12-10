@@ -24,6 +24,8 @@ class HttpServer(QObject):
         self._server = QHttpServer(ext, address, port)
 
         app = ext.app
+
+        # API Routes
         self._server.add_route_handler(LibraryHandler(app.sql))
         self._server.add_route_handler(CategoryHandler(app.sql))
         self._server.add_route_handler(
@@ -33,6 +35,9 @@ class HttpServer(QObject):
             MangaHandler(app.network, app.downloader, app.sql, app.updater)
         )
         self._server.add_route_handler(ChapterHandler(app.network, app.sql))
+
+        # Non API Routes
+        self._server.get("/sse")(sse(app))
         self._server.add_route_handler(WebPageHandler())
 
         self._server.started.connect(self.started.emit)
