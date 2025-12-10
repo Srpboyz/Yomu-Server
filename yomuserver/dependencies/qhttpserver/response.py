@@ -11,7 +11,7 @@ from .request import HttpRequest
 
 class StatusCode(IntEnum):
     # Success
-    SUCCESS = 200
+    OK = 200
     CREATED = 201
     ACCEPTED = 202
     NON_AUTHORITATIVE_INFORMATION = 203
@@ -34,7 +34,7 @@ class StatusCode(IntEnum):
 class HttpResponse:
     def __init__(
         self,
-        status: StatusCode = StatusCode.SUCCESS,
+        status: StatusCode = StatusCode.OK,
         headers: dict | None = None,
         body: bytes | str | None = None,
         json: dict | list | None = None,

@@ -38,7 +38,7 @@ class CategoryHandler(RouteHandler):
         if category is None:
             return HttpResponse(status=StatusCode.INTERNAL_SERVER_ERROR)
         return HttpResponse(
-            status=StatusCode.SUCCESS, json=convert_category_to_json(category)
+            status=StatusCode.OK, json=convert_category_to_json(category)
         )
 
     @delete("/<id:int>/")
@@ -52,7 +52,7 @@ class CategoryHandler(RouteHandler):
 
         if self.sql.delete_category(category) is None:
             return HttpResponse(status=StatusCode.INTERNAL_SERVER_ERROR)
-        return HttpResponse(status=StatusCode.SUCCESS)
+        return HttpResponse(status=StatusCode.OK)
 
     @get("/<id:int>/mangas")
     def get_category_mangas(self, request: HttpRequest):
@@ -65,7 +65,7 @@ class CategoryHandler(RouteHandler):
 
         mangas = self.sql.get_category_mangas(category)
         return HttpResponse(
-            status=StatusCode.SUCCESS, json=list(map(convert_manga_to_json, mangas))
+            status=StatusCode.OK, json=list(map(convert_manga_to_json, mangas))
         )
 
     @post("/<category_id:int>/manga/<manga_id:int>/")
@@ -86,7 +86,7 @@ class CategoryHandler(RouteHandler):
             return HttpResponse(status=StatusCode.BAD_REQUEST)
 
         if self.sql.add_manga_to_category(manga, category):
-            return HttpResponse(status=StatusCode.SUCCESS)
+            return HttpResponse(status=StatusCode.OK)
         return HttpResponse(status=StatusCode.INTERNAL_SERVER_ERROR)
 
     @delete("/<category_id:int>/manga/<manga_id:int>/")
@@ -107,5 +107,5 @@ class CategoryHandler(RouteHandler):
             return HttpResponse(StatusCode.BAD_REQUEST)
 
         if self.sql.remove_manga_from_category(manga, category):
-            return HttpResponse(status=StatusCode.SUCCESS)
+            return HttpResponse(status=StatusCode.OK)
         return HttpResponse(status=StatusCode.INTERNAL_SERVER_ERROR)

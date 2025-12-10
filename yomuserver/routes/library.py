@@ -39,7 +39,7 @@ class LibraryHandler(RouteHandler):
             return HttpResponse(StatusCode.NOT_FOUND)
 
         if manga.library or self.sql.set_library(manga, library=True):
-            return HttpResponse(status=StatusCode.SUCCESS)
+            return HttpResponse(status=StatusCode.OK)
         return HttpResponse(status=StatusCode.INTERNAL_SERVER_ERROR)
 
     @delete("/<id:int>/")
@@ -52,5 +52,5 @@ class LibraryHandler(RouteHandler):
 
         ret = self.sql.set_library(manga, library=False)
         if not manga.library or ret:
-            return HttpResponse(status=StatusCode.SUCCESS)
+            return HttpResponse(status=StatusCode.OK)
         return HttpResponse(status=StatusCode.INTERNAL_SERVER_ERROR)
