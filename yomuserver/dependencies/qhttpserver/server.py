@@ -14,6 +14,7 @@ from .response import (
     HttpResponse,
     StatusCode,
 )
+from .sse import SSEResponse, SSEResponseHandler
 from .utils import pyqtSlot
 
 if TYPE_CHECKING:
@@ -97,6 +98,10 @@ class QHttpServer(QObject):
             response._set_client(client)
             response.finished.connect(self._reply)
             response.error_occured.connect(self._async_response_error)
+            return
+
+        if isinstance(response, SSEResponse):
+            SSEResponseHandler(self, client, response, request.version)
             return
 
         return self._reply(client, response, request.version)
