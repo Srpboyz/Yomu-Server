@@ -23,7 +23,7 @@ class HttpRequest:
     def __init__(
         self,
         method: Method,
-        version: str,
+        version: float,
         path: str,
         headers: dict,
         body: str | None,
@@ -53,7 +53,7 @@ class HttpRequest:
         path = parsed_url_path.path
         query_params = parse_qs(parsed_url_path.query)
 
-        version = http_info[2]
+        version = float(http_info[2].split("/")[1])
 
         headers = {}
         for i, line in enumerate(lines[1:], start=1):

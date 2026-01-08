@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from logging import Logger
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import pyqtSignal, QObject
@@ -21,7 +20,7 @@ class HttpServer(QObject):
         super().__init__(ext)
 
         address = QHostAddress(QHostAddress.SpecialAddress.AnyIPv4)
-        self._server = QHttpServer(ext, address, port)
+        self._server = QHttpServer(address, port, "yomuserver", self)
 
         app = ext.app
 
@@ -35,9 +34,9 @@ class HttpServer(QObject):
             MangaHandler(app.network, app.downloader, app.sql, app.updater)
         )
         self._server.add_route_handler(ChapterHandler(app.network, app.sql))
+        self._server.get("/api/sse")(sse(app))
 
         # Non API Routes
-        self._server.get("/sse")(sse(app))
         self._server.add_route_handler(WebPageHandler())
 
         self._server.started.connect(self.started.emit)

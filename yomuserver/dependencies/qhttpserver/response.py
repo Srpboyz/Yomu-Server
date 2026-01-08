@@ -109,8 +109,7 @@ class AsyncHttpResponse(QObject):
 
         if not isinstance(response, HttpResponse):
             return self.error_occured.emit(
-                TypeError(f"Expected type `HttpResponse` not `{
-                          type(response)}`"),
+                TypeError(f"Expected type `HttpResponse` not `{type(response)}`"),
             )
 
         self.finished.emit(self._client, self.request, response)
@@ -120,15 +119,13 @@ class AsyncHttpResponse(QObject):
         client.disconnected.connect(self.deleteLater)
 
 
-def convert_response_to_http(response: HttpResponse, version: str) -> bytes:
+def convert_response_to_http(response: HttpResponse) -> bytes:
     status = response.status
     status_name = status.to_str()
 
-    headers = "\r\n".join(f"{key}: {value}" for key,
-                          value in response.headers.items())
+    headers = "\r\n".join(f"{key}: {value}" for key, value in response.headers.items())
     if len(headers):
         headers += "\r\n"
 
-    body = response.body.encode() if isinstance(
-        response.body, str) else response.body
-    return f"{version} {status} {status_name}\r\n{headers}\r\n".encode() + body
+    body = response.body.encode() if isinstance(response.body, str) else response.body
+    return f"HTTP/1.1 {status} {status_name}\r\n{headers}\r\n".encode() + body

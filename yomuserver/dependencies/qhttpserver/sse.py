@@ -1,5 +1,6 @@
 from PyQt6.QtCore import pyqtSignal, QObject
 from PyQt6.QtNetwork import QTcpSocket
+from .request import HttpRequest
 
 __all__ = ("SSEResponse",)
 
@@ -14,11 +15,11 @@ class SSEResponseHandler(QObject):
         self,
         parent: QObject,
         client: QTcpSocket,
+        request: HttpRequest,
         response: SSEResponse,
-        http_version: str,
     ) -> None:
         super().__init__(parent)
-
+        self.request = request
         self.client = client
         client.disconnected.connect(self.deleteLater)
 
@@ -27,12 +28,12 @@ class SSEResponseHandler(QObject):
         response.event_occurred.connect(self.send_message)
         response.finished.connect(self.sse_finished)
 
-        self._send_initial_message(http_version)
+        self._send_initial_message()
 
-    def _send_initial_message(self, http_version: str) -> None:
+    def _send_initial_message(self) -> None:
         self.client.write(
             (
-                f"{http_version} 200 OK\r\n"
+                f"HTTP/1.1 200 OK\r\n"
                 "Content-Type: text/event-stream\r\n"
                 "Cache-Control: no-cache\r\n"
                 "Connection: keep-alive\r\n"
