@@ -30,6 +30,36 @@ class StatusCode(IntEnum):
     # Server Error
     INTERNAL_SERVER_ERROR = 500
 
+    def to_str(self):
+        if self == StatusCode.OK:
+            return "OK"
+        if self == StatusCode.CREATED:
+            return "CREATED"
+        if self == StatusCode.ACCEPTED:
+            return "ACCEPTED"
+        if self == StatusCode.NON_AUTHORITATIVE_INFORMATION:
+            return "NON AUTHORITATIVE INFORMATION"
+        if self == StatusCode.NO_CONTENT:
+            return "NO CONTENT"
+        if self == StatusCode.RESET_CONTENT:
+            return "RESET CONTENT"
+        if self == StatusCode.PARTIAL_CONTENT:
+            return "PARTIAL CONTENT"
+        if self == StatusCode.BAD_REQUEST:
+            return "BAD REQUEST"
+        if self == StatusCode.UNAUTHORIZED:
+            return "UNAUTHORIZED"
+        if self == StatusCode.FORBIDDEN:
+            return "FORBIDDEN"
+        if self == StatusCode.NOT_FOUND:
+            return "NOT FOUND"
+        if self == StatusCode.METHOD_NOT_ALLOWED:
+            return "METHOD NOT ALLOWED"
+        if self == StatusCode.REQUEST_TIMEOUT:
+            return "REQUEST TIMEOUT"
+        if self == StatusCode.INTERNAL_SERVER_ERROR:
+            return "INTERNAL SERVER ERROR"
+
 
 class HttpResponse:
     def __init__(
@@ -53,7 +83,7 @@ class HttpResponse:
 
 
 class AsyncHttpResponse(QObject):
-    finished = pyqtSignal((QTcpSocket, HttpResponse, str))
+    finished = pyqtSignal((QTcpSocket, HttpRequest, HttpResponse))
     error_occured = pyqtSignal(Exception)
 
     def __init__(self, request: HttpRequest, func: Callable, *args, **kwargs) -> None:
@@ -79,10 +109,11 @@ class AsyncHttpResponse(QObject):
 
         if not isinstance(response, HttpResponse):
             return self.error_occured.emit(
-                TypeError(f"Expected type `HttpResponse` not `{type(response)}`"),
+                TypeError(f"Expected type `HttpResponse` not `{
+                          type(response)}`"),
             )
 
-        self.finished.emit(self._client, response, self.request.version)
+        self.finished.emit(self._client, self.request, response)
 
     def _set_client(self, client: QTcpSocket):
         self._client = client
@@ -91,11 +122,13 @@ class AsyncHttpResponse(QObject):
 
 def convert_response_to_http(response: HttpResponse, version: str) -> bytes:
     status = response.status
-    status_name = response.status.name.replace("_", " ").title()
+    status_name = status.to_str()
 
-    headers = "\r\n".join(f"{key}: {value}" for key, value in response.headers.items())
+    headers = "\r\n".join(f"{key}: {value}" for key,
+                          value in response.headers.items())
     if len(headers):
         headers += "\r\n"
 
-    body = response.body.encode() if isinstance(response.body, str) else response.body
-    return f"{version} {status.value} {status_name}\r\n{headers}\r\n".encode() + body
+    body = response.body.encode() if isinstance(
+        response.body, str) else response.body
+    return f"{version} {status} {status_name}\r\n{headers}\r\n".encode() + body
