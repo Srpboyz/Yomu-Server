@@ -43,12 +43,13 @@ class SSEResponseHandler(QObject):
             ).encode()
         )
         self.client.flush()
+        self.send_message("open", "connected")
 
     def send_message(self, event: str, message: str) -> None:
-        self.client.write(f"event: {event}\ndata: {message}\n\n".encode())
+        self.client.write(f"event: {event}\r\ndata: {message}\r\n\r\n".encode())
         self.client.flush()
 
     def sse_finished(self) -> None:
-        self.client.write(b"event: done\ndata:{}\n\n")
+        self.client.write(b"event: done\r\ndata:{}\r\n\r\n")
         self.client.flush()
         self.client.disconnectFromHost()

@@ -102,7 +102,8 @@ class YomuEventHandler(SSEResponse):
         )
 
     def send_message(self, message_type: MessageType, data: dict) -> None:
-        self.event_occurred.emit(str(message_type), json.dumps(data))
+        message = json.dumps({"type": message_type, "data": data})
+        self.event_occurred.emit("message", message)
 
 
 def sse(app: YomuApp) -> None:
