@@ -37,6 +37,15 @@ class ChapterHandler(RouteHandler):
         self.network = network
         self.sql = sql
 
+        query = self.sql.create_query()
+        query.exec(
+            """CREATE TABLE IF NOT EXISTS pages (chapter_id INTEGER NOT NULL,
+                                                 number INTEGER NOT NULL,
+                                                 url TEXT NOT NULL,
+                                                 PRIMARY KEY(chapter_id, number),
+                                                 FOREIGN KEY(chapter_id) REFERENCES chapters(id) ON DELETE CASCADE);"""
+        )
+
     def mark_read_status(self, id: int, read: bool) -> bool:
         chapter = self.sql.get_chapter_by_id(id)
         if chapter is None:
@@ -73,7 +82,9 @@ class ChapterHandler(RouteHandler):
             return HttpResponse(status=StatusCode.NOT_FOUND)
 
         if chapter.downloaded:
-            return HttpResponse(json=os.listdir(Downloader.resolve_path(chapter)))
+            return HttpResponse(
+                json={"pages": len(os.listdir(Downloader.resolve_path(chapter)))}
+            )
 
         r = chapter.source.get_chapter_pages(chapter)
         r.setPriority(Request.Priority.HighPriority)
@@ -87,24 +98,52 @@ class ChapterHandler(RouteHandler):
 
     def _chapter_pages_received(self, _, response: Response, chapter: Chapter):
         pages = chapter.source.parse_chapter_pages(response, chapter)
-        return HttpResponse(json=[page.url for page in pages])
+        page_count = len(pages)
 
-    @get("/<id:int>/page")
+        query = self.sql.create_query()
+        query.prepare(
+            """INSERT INTO pages VALUES (:chapter_id, :number, :url)
+               ON CONFLICT(chapter_id, number) DO UPDATE
+               SET url = COALESCE(EXCLUDED.url, url)
+            """
+        )
+        query.addBindValue([chapter.id] * page_count)
+        query.addBindValue(list(range(page_count)))
+        query.addBindValue(
+            [page.url for page in sorted(pages, key=lambda page: page.number)]
+        )
+        if not query.execBatch():
+            return HttpResponse(status=StatusCode.INTERNAL_SERVER_ERROR)
+
+        return HttpResponse(json={"pages": page_count})
+
+    @get("/<id:int>/page/<index:int>")
     def load_images(self, request: HttpRequest):
         chapter = self.sql.get_chapter_by_id(request.path_params["id"])
         if chapter is None:
             return HttpResponse(status=StatusCode.NOT_FOUND)
 
         source = chapter.source
-        url = request.query_params["url"][0]
+        index: int = request.path_params["index"]
 
         if chapter.downloaded:
             page = None
             r = Request(
-                QUrl.fromLocalFile(os.path.join(Downloader.resolve_path(chapter), url))
+                QUrl.fromLocalFile(
+                    os.path.join(Downloader.resolve_path(chapter), f"{index}.png")
+                )
             )
         else:
-            page = SourcePage(number=0, url=url)
+            query = self.sql.create_query()
+            query.prepare(
+                "SELECT url FROM pages WHERE chapter_id = :chapter_id AND number = :number"
+            )
+            query.bindValue(":chapter_id", chapter.id)
+            query.bindValue(":number", index)
+            if not query.exec() or not query.first():
+                return HttpResponse(status=StatusCode.NOT_FOUND)
+
+            page = SourcePage(number=0, url=query.value("url"))
             r = source.get_page(page)
             r.setPriority(Request.Priority.HighPriority)
 
