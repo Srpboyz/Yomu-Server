@@ -45,5 +45,8 @@ class HttpServer(QObject):
     def run(self) -> None:
         self._server.run()
 
+    def update_port(self, port: int) -> None:
+        self._server.port = port
+
     def close(self) -> None:
         self._server.close()

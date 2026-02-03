@@ -5,7 +5,7 @@ import os
 from copy import deepcopy
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QEvent, Qt
+from PyQt6.QtCore import QEvent
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QMenu, QSystemTrayIcon
 
@@ -13,8 +13,7 @@ from yomu.core.app import YomuApp
 from yomu.extension import YomuExtension
 
 from .http import HttpServer
-from .websocket import WebsocketServer
-from .settings import SettingsDialog
+from .settings import SettingsWidget
 
 if TYPE_CHECKING:
     from yomu.ui import ReaderWindow
@@ -36,31 +35,24 @@ class YomuServerExtension(YomuExtension):
             with open(os.path.join(os.path.dirname(__file__), "settings.json")) as f:
                 self.settings = json.load(f)
         except Exception:
-            self.settings = {"http_port": 6969, "ws_port": 42069, "autoconnect": False}
+            self.settings = {"autoconnect": False, "http_port": 6969}
 
-        http_port = self.settings.get("http_port", 6969)
-        ws_port = self.settings.get("ws_port", 42069)
-
-        self.http_server = HttpServer(self, http_port)
-        self.websocket_server = WebsocketServer(self, app, ws_port)
-        self.websocket_server.started.connect(self.http_server.run)
-        self.websocket_server.closed.connect(self.http_server.close)
-
+        self.http_server = HttpServer(self, self.settings.get("http_port", 6969))
         self.menu = QMenu()
 
         open_window = Action("Open Window", self.menu)
         open_window.triggered.connect(self._open_window)
 
         stop_action = Action("Stop Server", self.menu)
-        stop_action.triggered.connect(self.websocket_server.close)
-        self.websocket_server.started.connect(stop_action.show)
-        self.websocket_server.closed.connect(stop_action.hide)
+        stop_action.triggered.connect(self.http_server.close)
+        self.http_server.started.connect(stop_action.show)
+        self.http_server.closed.connect(stop_action.hide)
         stop_action.hide()
 
         start_action = Action("Start Server", self.menu)
-        start_action.triggered.connect(self.run)
-        self.websocket_server.started.connect(start_action.hide)
-        self.websocket_server.closed.connect(start_action.show)
+        start_action.triggered.connect(self.http_server.run)
+        self.http_server.started.connect(start_action.hide)
+        self.http_server.closed.connect(start_action.show)
 
         self.menu.addActions([open_window, stop_action, start_action])
         self.menu.addAction("Exit").triggered.connect(app.quit)
@@ -72,10 +64,9 @@ class YomuServerExtension(YomuExtension):
         self.tray_icon.activated.connect(self._activated)
         self.tray_icon.show()
 
-        self.settings_requested.connect(self.display_settings)
         app.window_created.connect(self._window_created)
         if self.settings.get("autoconnect", False):
-            app.aboutToStart.connect(self.run)
+            app.aboutToStart.connect(self.http_server.run)
 
     @property
     def name(self) -> str:
@@ -104,24 +95,18 @@ class YomuServerExtension(YomuExtension):
         self.settings = settings
         with open(os.path.join(os.path.dirname(__file__), "settings.json"), "w") as f:
             json.dump(settings, f, indent=4)
+        self.http_server.update_port(self.settings.get("http_port", 6969))
+
+    def settings_widget(self) -> SettingsWidget:
+        settings = SettingsWidget(None, deepcopy(self.settings))
+        settings.settings_updated.connect(self.update_settings)
+        return settings
 
     def display_message(
         self, message: str, *, duration: int = 3000, error: bool = False
     ) -> None:
         icon = QSystemTrayIcon.MessageIcon.Critical if error else self.tray_icon.icon()
         self.tray_icon.showMessage("Yomu", message, icon, duration)
-
-    def display_settings(self, window: ReaderWindow) -> None:
-        settings = deepcopy(self.settings)
-
-        dialog = SettingsDialog(window, settings)
-        dialog.settings_updated.connect(
-            self.update_settings, Qt.ConnectionType.QueuedConnection
-        )
-        dialog.exec()
-
-    def run(self) -> None:
-        self.websocket_server.run()
 
     def unload(self) -> None:
         self.menu.deleteLater()

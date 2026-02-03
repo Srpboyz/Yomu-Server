@@ -35,7 +35,8 @@ class QHttpServer(QObject):
         super().__init__(parent)
         self.name = name or "qhttpserver"
         self.address = address
-        self.port = port
+        self._port = port
+        self._is_restarting = False
 
         self._server = QTcpServer(self)
         self._router = Router()
@@ -46,6 +47,18 @@ class QHttpServer(QObject):
     @property
     def is_running(self) -> None:
         return self._server.isListening()
+
+    @property
+    def port(self) -> int:
+        return self._port
+
+    @port.setter
+    def port(self, port: int) -> None:
+        self._port = port
+        self._is_restarting = True
+        self.close()
+        self.run()
+        self._is_restarting = False
 
     def _new_connection(self) -> None:
         client = self._server.nextPendingConnection()
@@ -111,17 +124,18 @@ class QHttpServer(QObject):
     def _reply(
         self, client: QTcpSocket, request: HttpRequest, response: HttpResponse
     ) -> None:
-        address, port, method, path, version, status = (
+        address, port, method, path, status = (
             client.peerAddress().toString(),
             client.peerPort(),
             request.method,
             request.path,
-            request.version,
             response.status,
         )
 
-        log_message = f"{address}:{port} - {method} {path} HTTP/{version} {status} {status.to_str()}"
-        getLogger(self.name).info(log_message)
+        log_message = (
+            f"{address}:{port} - {method} {path} HTTP/1.1 {status} {status.to_str()}"
+        )
+        getLogger(self.name).debug(log_message)
 
         message = convert_response_to_http(response)
         client.write(message)
@@ -181,13 +195,17 @@ class QHttpServer(QObject):
 
     def run(self) -> bool:
         self.logger.debug("Yomu server is starting up")
-        if self._server.listen(self.address, self.port):
-            self.logger.debug("Yomu server started up")
-            self.started.emit()
+        if self._server.isListening():
             return True
 
-        self.logger.warning("Yomu server failed to start")
-        return False
+        if not self._server.listen(self.address, self.port):
+            self.logger.warning("Yomu server failed to start")
+            return False
+
+        self.logger.debug("Yomu server started up")
+        if not self._is_restarting:
+            self.started.emit()
+        return True
 
     def close(self) -> None:
         if not self._server.isListening():
@@ -197,4 +215,5 @@ class QHttpServer(QObject):
         self._server.close()
         self.logger.debug("Yomu server closed")
 
-        self.closed.emit()
+        if not self._is_restarting:
+            self.closed.emit()
