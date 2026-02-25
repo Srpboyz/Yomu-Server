@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from PyQt6.QtCore import QBuffer, Qt, QUrl
 from PyQt6.QtGui import QImage
 
+from yomu.core.downloader import Downloader
 from yomu.core.network import Request, Response
 from qhttpserver import (
     get,
@@ -22,7 +23,6 @@ from .utils import convert_manga_to_json, convert_chapter_to_json
 if TYPE_CHECKING:
     from yomu.core.models import Manga
     from yomu.core.network import Network
-    from yomu.core.downloader import Downloader
     from yomu.core.sql import Sql
     from yomu.core.updater import Updater
 
@@ -85,7 +85,7 @@ class MangaHandler(RouteHandler):
         if manga is None:
             return HttpResponse(status=StatusCode.NOT_FOUND)
 
-        path = self.downloader.resolve_path(manga)
+        path = Downloader.resolve_path(manga)
         r: Request = (
             Request(QUrl.fromLocalFile(os.path.join(path, "thumbnail.png")))
             if manga.library and os.path.exists(path)
