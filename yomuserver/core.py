@@ -68,10 +68,6 @@ class YomuServerExtension(YomuExtension):
         if self.settings.get("autoconnect", False):
             app.aboutToStart.connect(self.http_server.run)
 
-    @property
-    def name(self) -> str:
-        return "Yomu Server"
-
     def eventFilter(self, window: ReaderWindow, event: QEvent) -> bool:
         if event.type() == QEvent.Type.Close and len(self.app.windows) < 2:
             window.hide()

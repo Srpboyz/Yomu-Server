@@ -50,7 +50,7 @@ class WebPageHandler(RouteHandler):
         except OSError:
             return HttpResponse(StatusCode.NOT_FOUND)
 
-        headers = {"content-type": mimetypes.guess_file_type(path)[0]}
+        headers = {"content-type": mimetypes.guess_type(path)[0]}
         return HttpResponse(headers=headers, body=file_content)
 
     @get("/assets/<file>")
@@ -66,5 +66,5 @@ class WebPageHandler(RouteHandler):
         except OSError:
             return HttpResponse(StatusCode.NOT_FOUND)
 
-        headers = {"content-type": mimetypes.guess_file_type(path)[0]}
+        headers = {"content-type": mimetypes.guess_type(path)[0]}
         return HttpResponse(headers=headers, body=file_content)
