@@ -67,12 +67,17 @@ class QHttpServer(QObject):
 
         client.readyRead.connect(self._data_received)
 
+    @pyqtSlot(getLogger(__name__))
     def _data_received(self) -> None:
         client: QTcpSocket = self.sender()
+        data = client.readAll().data()
         try:
-            request = HttpRequest.from_raw_data(client.readAll().data())
+            request = HttpRequest.from_raw_data(data)
         except Exception as e:
-            self.logger.error("Failed to parse message", exc_info=e)
+            self.logger.error(
+                f"{client.peerAddress().toString()}:{client.peerPort()} - Failed to parse message",
+                exc_info=e,
+            )
             response = HttpResponse(status=StatusCode.BAD_REQUEST)
             message = convert_response_to_http(response)
             client.write(message)
@@ -135,7 +140,7 @@ class QHttpServer(QObject):
         log_message = (
             f"{address}:{port} - {method} {path} HTTP/1.1 {status} {status.to_str()}"
         )
-        getLogger(self.name).debug(log_message)
+        getLogger(self.name).info(log_message)
 
         message = convert_response_to_http(response)
         client.write(message)
