@@ -40,7 +40,12 @@ class HttpRequest:
 
     @classmethod
     def from_raw_data(cls, data: bytes) -> HttpRequest | None:
-        request = data.decode()
+        if not data.startswith(
+            (b"GET ", b"POST ", b"PUT ", b"DELETE ", b"PATCH ", b"HEAD ", b"OPTIONS ")
+        ):
+            return None
+
+        request = data.decode("iso-8859-1")
         if not (lines := request.split("\r\n")):
             return None
         http_info = lines[0].split(" ")
