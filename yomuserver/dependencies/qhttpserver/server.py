@@ -14,7 +14,7 @@ from .response import (
     HttpResponse,
     StatusCode,
 )
-from .sse import SSEResponse, SSEResponseHandler
+from .stream import StreamResponse, StreamResponseHandler
 from .utils import pyqtSlot
 
 if TYPE_CHECKING:
@@ -119,11 +119,11 @@ class QHttpServer(QObject):
             response.error_occured.connect(self._async_response_error)
             return
 
-        if isinstance(response, SSEResponse):
-            SSEResponseHandler(self, client, request, response)
+        if isinstance(response, StreamResponse):
+            StreamResponseHandler(self, client, request, response)
             return
 
-        return self._reply(client, request, response)
+        self._reply(client, request, response)
 
     @pyqtSlot(getLogger(__name__))
     def _reply(
