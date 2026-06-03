@@ -78,7 +78,7 @@ class SourceHandler(RouteHandler):
         error = reply.error()
         if error != Response.Error.NoError:
             if error != Response.Error.OperationCanceledError:
-                source.latest_request_error(reply)
+                source.latest_request_error(reply, page)
             return HttpResponse(StatusCode.INTERNAL_SERVER_ERROR)
 
         manga_list = source.parse_latest(reply, page)
@@ -112,7 +112,7 @@ class SourceHandler(RouteHandler):
         error = reply.error()
         if error != Response.Error.NoError:
             if error != Response.Error.OperationCanceledError:
-                source.search_request_error(reply)
+                source.search_request_error(reply, name)
             return HttpResponse(StatusCode.INTERNAL_SERVER_ERROR)
 
         manga_list = source.parse_search_results(reply, name)

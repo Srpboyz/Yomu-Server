@@ -92,6 +92,10 @@ class MangaHandler(RouteHandler):
             else manga.get_thumbnail()
         )
         r.setPriority(Request.Priority.LowPriority)
+        r.setAttribute(
+            Request.Attribute.CacheLoadControlAttribute,
+            Request.CacheLoadControl.PreferCache,
+        )
         response = self.network.handle_request(r)
 
         server_response = AsyncHttpResponse(request, self._thumbnail_received, manga)
@@ -102,7 +106,7 @@ class MangaHandler(RouteHandler):
         error = reply.error()
         if error != Response.Error.NoError:
             if error != Response.Error.OperationCanceledError:
-                manga.source.thumbnail_request_error(reply)
+                manga.source.thumbnail_request_error(reply, manga)
             return HttpResponse(StatusCode.INTERNAL_SERVER_ERROR)
 
         data = manga.source.parse_thumbnail(reply, manga)

@@ -100,7 +100,9 @@ def convert_chapter_to_json(chapter: Chapter) -> ChapterDict:
         "number": chapter.number,
         "manga": chapter.manga.id,
         "title": chapter.title,
-        "uploaded": chapter.uploaded.timestamp(),
+        "uploaded": (
+            chapter.uploaded.timestamp() if chapter.uploaded is not None else -1
+        ),
         "downloaded": chapter.downloaded,
         "read": chapter.read,
         "url": chapter.url,
