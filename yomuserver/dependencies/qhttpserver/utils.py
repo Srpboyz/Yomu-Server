@@ -4,7 +4,12 @@ from typing import Callable
 import re
 
 MATCH = re.compile(r"<([a-zA-Z_]+):?([a-zA-Z]+)?>")
-TYPES = {"int": (r"(\d+)", int), "float": (r"(\d+\.\d+)", float)}
+TYPES = {
+    "int": (r"(\d+)", int),
+    "float": (r"(\d+\.\d+)", float),
+    "str": (r"([^/]+)", str),
+    "string": (r"([^/]+)", str),
+}
 
 
 def check_regex(path: str) -> tuple[bool, str, dict]:
@@ -14,7 +19,7 @@ def check_regex(path: str) -> tuple[bool, str, dict]:
     offset = 0
     for m in MATCH.finditer(path):
         name, group_type = m.groups()
-        pattern, cls = TYPES.get(group_type, (r"([\w_.-]+)", str))
+        pattern, cls = TYPES.get(group_type, (r"([^/]+)", str))
         params[name] = cls
 
         start, end = m.start(), m.end()
