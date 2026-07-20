@@ -42,7 +42,7 @@ class QHttpServer(QObject):
         self._router = Router()
         self.logger = getLogger(self.name)
 
-        self._server.newConnection.connect(self._new_connection)
+        self._server.newConnection.connect(self.on_new_connection)
 
     @property
     def is_running(self) -> None:
@@ -60,15 +60,15 @@ class QHttpServer(QObject):
         self.run()
         self._is_restarting = False
 
-    def _new_connection(self) -> None:
+    def on_new_connection(self) -> None:
         client = self._server.nextPendingConnection()
         if client is None:
             return
 
-        client.readyRead.connect(self._data_received)
+        client.readyRead.connect(self.on_data_received)
 
     @pyqtSlot(getLogger(__name__))
-    def _data_received(self) -> None:
+    def on_data_received(self) -> None:
         client: QTcpSocket = self.sender()
         data = client.readAll().data()
         try:
@@ -94,18 +94,19 @@ class QHttpServer(QObject):
 
         if route is None:
             response = HttpResponse(status=StatusCode.NOT_FOUND)
-            return self._reply(client, request, response)
+            return self.send_response(client, request, response)
 
-        func = route.methods.get(request.method)
+        method = request.method
+        func = route.methods.get(method)
         if func is None:
             response = HttpResponse(status=StatusCode.METHOD_NOT_ALLOWED)
-            return self._reply(client, request, response)
+            return self.send_response(client, request, response)
 
         if route.has_path_params:
             request.path_params = route.get_params(path)
 
         try:
-            response = func(request)
+            response: AsyncHttpResponse | HttpRequest | StreamResponse = func(request)
         except Exception as e:
             self.logger.exception(
                 f"Exception occurred while calling {func.__name__}", exc_info=e
@@ -115,8 +116,8 @@ class QHttpServer(QObject):
         if isinstance(response, AsyncHttpResponse):
             response.setParent(self)
             response._set_client(client)
-            response.finished.connect(self._reply)
-            response.error_occured.connect(self._async_response_error)
+            response.finished.connect(self.send_response)
+            response.error_occured.connect(self.on_async_response_error)
             return
 
         if isinstance(response, StreamResponse):
@@ -129,8 +130,19 @@ class QHttpServer(QObject):
             self.log_request(address, port, method, path, status)
             return
 
-        self._reply(client, request, response)
+        self.send_response(client, request, response)
 
+    def on_async_response_error(self, error: Exception) -> None:
+        response: AsyncHttpResponse = self.sender()
+        self.logger.exception(
+            f"Exception occurred while calling {response.func.__name__}", exc_info=error
+        )
+
+        self.send_response(
+            response._client,
+            response.request,
+            HttpResponse(status=StatusCode.INTERNAL_SERVER_ERROR),
+        )
 
     def log_request(
         self, address: str, port: int, method: Method, path: str, status: StatusCode
@@ -140,7 +152,7 @@ class QHttpServer(QObject):
         )
 
     @pyqtSlot(getLogger(__name__))
-    def _reply(
+    def send_response(
         self, client: QTcpSocket, request: HttpRequest, response: HttpResponse
     ) -> None:
         address, port, method, path, status = (
@@ -156,18 +168,6 @@ class QHttpServer(QObject):
         message = convert_response_to_http(response)
         client.write(message)
         client.disconnectFromHost()
-
-    def _async_response_error(self, error: Exception) -> None:
-        response: AsyncHttpResponse = self.sender()
-        self.logger.exception(
-            f"Exception occurred while calling {response.func.__name__}", exc_info=error
-        )
-
-        self._reply(
-            response._client,
-            response.request,
-            HttpResponse(status=StatusCode.INTERNAL_SERVER_ERROR),
-        )
 
     def get(self, path: str):
         self.logger.debug(f"Adding GET endpoint: {path}")

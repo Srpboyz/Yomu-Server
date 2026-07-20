@@ -41,7 +41,7 @@ class YomuServerExtension(YomuExtension):
         self.menu = QMenu()
 
         open_window = Action("Open Window", self.menu)
-        open_window.triggered.connect(self._open_window)
+        open_window.triggered.connect(self.open_window)
 
         stop_action = Action("Stop Server", self.menu)
         stop_action.triggered.connect(self.http_server.close)
@@ -61,10 +61,10 @@ class YomuServerExtension(YomuExtension):
         self.tray_icon.setIcon(app.windowIcon())
         self.tray_icon.setToolTip("Yomu")
         self.tray_icon.setContextMenu(self.menu)
-        self.tray_icon.activated.connect(self._activated)
+        self.tray_icon.activated.connect(self.on_tray_activated)
         self.tray_icon.show()
 
-        app.window_created.connect(self._window_created)
+        app.window_created.connect(self.on_window_created)
         if self.settings.get("autoconnect", False):
             app.aboutToStart.connect(self.http_server.run)
 
@@ -75,17 +75,17 @@ class YomuServerExtension(YomuExtension):
             return True
         return False
 
-    def _window_created(self, window: ReaderWindow) -> None:
+    def on_window_created(self, window: ReaderWindow) -> None:
         window.installEventFilter(self)
 
-    def _open_window(self) -> None:
-        if (window := self.app.window) is not None:
-            window.activateWindow()
-
-    def _activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
+    def on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             if (window := self.app.window) is not None:
                 window.activateWindow()
+
+    def open_window(self) -> None:
+        if (window := self.app.window) is not None:
+            window.activateWindow()
 
     def update_settings(self, settings: dict) -> None:
         self.settings = settings
