@@ -52,7 +52,7 @@ class ChapterHandler(RouteHandler):
             return False
 
         self.sql.mark_chapters_read_status([chapter], read=read)
-        return chapter.read
+        return chapter.read == read
 
     @get("/<id:int>")
     def get_chapter(self, request: HttpRequest):
