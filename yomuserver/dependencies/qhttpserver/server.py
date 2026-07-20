@@ -121,9 +121,23 @@ class QHttpServer(QObject):
 
         if isinstance(response, StreamResponse):
             StreamResponseHandler(self, client, request, response)
+            address, port, status = (
+                client.peerAddress().toString(),
+                client.peerPort(),
+                StatusCode.OK,
+            )
+            self.log_request(address, port, method, path, status)
             return
 
         self._reply(client, request, response)
+
+
+    def log_request(
+        self, address: str, port: int, method: Method, path: str, status: StatusCode
+    ) -> None:
+        self.logger.info(
+            f"{address}:{port} - {method} {path} HTTP/1.1 {status} {status.to_str()}"
+        )
 
     @pyqtSlot(getLogger(__name__))
     def _reply(
@@ -137,10 +151,7 @@ class QHttpServer(QObject):
             response.status,
         )
 
-        log_message = (
-            f"{address}:{port} - {method} {path} HTTP/1.1 {status} {status.to_str()}"
-        )
-        getLogger(self.name).info(log_message)
+        self.log_request(address, port, method, path, status)
 
         message = convert_response_to_http(response)
         client.write(message)
