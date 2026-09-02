@@ -1,4 +1,4 @@
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, QTimer
 from .stream import StreamResponse
 
 __all__ = ("SSEResponse",)
@@ -26,5 +26,13 @@ class SSEResponse(StreamResponse):
         )
         self.on_event_occured("open", "connected")
 
+        timer = QTimer(self)
+        timer.setInterval(20_000)
+        timer.timeout.connect(self.keep_alive)
+        timer.start()
+
     def on_event_occured(self, event: str, message: str) -> None:
         self.data_received.emit(f"event: {event}\r\ndata: {message}\r\n\r\n".encode())
+
+    def keep_alive(self) -> None:
+        self.data_received.emit("event: heartbeat\r\ndata: ping\r\n\r\n".encode())
