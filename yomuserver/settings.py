@@ -19,8 +19,8 @@ class SettingsWidget(QWidget):
 
     def init_ui(self) -> None:
         self.checkbox = QCheckBox(self)
-        self.checkbox.setText("Autoconnect")
-        self.checkbox.setChecked(self.settings.get("autoconnect", False))
+        self.checkbox.setText("Autostart")
+        self.checkbox.setChecked(self.settings.get("autostart", True))
         self.checkbox.checkStateChanged.connect(self.save_settings)
 
         widget = QWidget(self)
@@ -49,9 +49,9 @@ class SettingsWidget(QWidget):
     def save_settings(self) -> None:
         updated = False
 
-        autoconnect = self.checkbox.checkState() == Qt.CheckState.Checked
-        updated = self.settings.get("autoconnect", False) != autoconnect
-        self.settings["autoconnect"] = autoconnect
+        autostart = self.checkbox.checkState() == Qt.CheckState.Checked
+        updated = self.settings.get("autostart", True) != autostart
+        self.settings["autostart"] = autostart
 
         new_http_port = self.port_widget.value()
         updated = updated or self.settings.get("http_port", 6969) != new_http_port

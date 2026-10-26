@@ -35,7 +35,7 @@ class YomuServerExtension(YomuExtension):
             with open(os.path.join(os.path.dirname(__file__), "settings.json")) as f:
                 self.settings = json.load(f)
         except Exception:
-            self.settings = {"autoconnect": False, "http_port": 6969}
+            self.settings = {"autostart": True, "http_port": 6969}
 
         self.http_server = HttpServer(self, self.settings.get("http_port", 6969))
         self.menu = QMenu()
@@ -65,7 +65,7 @@ class YomuServerExtension(YomuExtension):
         self.tray_icon.show()
 
         app.window_created.connect(self.on_window_created)
-        if self.settings.get("autoconnect", False):
+        if self.settings.get("autostart", True):
             app.aboutToStart.connect(self.http_server.run)
 
     def eventFilter(self, window: ReaderWindow, event: QEvent) -> bool:
