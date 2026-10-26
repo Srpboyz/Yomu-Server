@@ -12,3 +12,7 @@
     * Windows: `C:\\Users\\<name>\\AppData\\Local\\Yomu\\extensions`
     * Linux: `~/.local/share/Yomu/extensions`
 3. Copy over the `yomuserver` folder from the repo
+
+## Usage
+
+This extension comes with a built in webui. This can be accessed on `http://localhost:port`, `http://local-ip:port`, `http://public-ip:port` (if port forwarded on your router). Default port is 6969. Android users can also use [Yomu-React-Native](https://github.com/Srpboyz/Yomu-React-Native) for a better mobile experience.
